@@ -1,6 +1,10 @@
 import ky from 'ky';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL) {
+  console.warn('NEXT_PUBLIC_API_URL is not defined in environment variables');
+}
 
 export const api = ky.create({
   prefixUrl: API_URL,
