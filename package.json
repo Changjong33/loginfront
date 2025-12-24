@@ -19,7 +19,7 @@
     "joi": "^18.0.2",
     "ky": "^1.14.1",
     "lucide-react": "^0.555.0",
-    "next": "16.0.6",
+    "next": "16.1.0",
     "oxide": "^0.0.3",
     "react": "19.2.0",
     "react-day-picker": "^9.11.3",
@@ -37,7 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.0.6",
+    "eslint-config-next": "16.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
