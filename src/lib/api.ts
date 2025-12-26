@@ -4,12 +4,15 @@ import { Ok, Err, Result } from 'oxide';
 // API URL 설정 (환경 변수 또는 기본값)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// URL 끝의 슬래시 제거 (ky가 자동으로 추가함)
+const cleanApiUrl = API_URL.replace(/\/$/, '');
+
 if (!process.env.NEXT_PUBLIC_API_URL) {
-  console.warn('NEXT_PUBLIC_API_URL is not defined in environment variables. Using default:', API_URL);
+  console.warn('NEXT_PUBLIC_API_URL is not defined in environment variables. Using default:', cleanApiUrl);
 }
 
 export const api = ky.create({
-  prefixUrl: API_URL,
+  prefixUrl: cleanApiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,6 +20,11 @@ export const api = ky.create({
   hooks: {
     beforeRequest: [
       (request) => {
+        // 디버깅: 실제 요청 URL 확인
+        if (typeof window !== 'undefined') {
+          console.log('API Request URL:', request.url);
+        }
+        
         // SSR 환경에서는 localStorage 접근 불가
         if (typeof window !== 'undefined') {
           const token = localStorage.getItem('accessToken');
