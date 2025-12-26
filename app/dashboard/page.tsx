@@ -314,7 +314,6 @@ export default function DashboardPage() {
                           const img = e.target as HTMLImageElement;
                           console.error('Image load error:', {
                             url: post.postImages[0].imageUrl,
-                            error: img.error,
                             naturalWidth: img.naturalWidth,
                             naturalHeight: img.naturalHeight,
                           });
@@ -344,9 +343,15 @@ export default function DashboardPage() {
                         댓글 {post.comments.length}개
                       </p>
                     )}
-                    <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
-                      {new Date(post.createdAt).toLocaleDateString('ko-KR')}
-                    </p>
+                            <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+                              {new Date(post.createdAt).toLocaleString('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
                   </div>
                 </article>
               </Link>

@@ -340,7 +340,13 @@ export default function PostDetailPage() {
                     </>
                   )}
                   <span className="text-xs text-gray-400">
-                    {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
+                    {new Date(comment.createdAt).toLocaleString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                 </div>
               </>
@@ -474,7 +480,6 @@ export default function PostDetailPage() {
                   const img = e.target as HTMLImageElement;
                   console.error('Image load error:', {
                     url: post.postImages[0].imageUrl,
-                    error: img.error,
                     naturalWidth: img.naturalWidth,
                     naturalHeight: img.naturalHeight,
                   });
@@ -512,10 +517,12 @@ export default function PostDetailPage() {
               )
             )}
             <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">
-              {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+              {new Date(post.createdAt).toLocaleString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
               })}
             </p>
 
