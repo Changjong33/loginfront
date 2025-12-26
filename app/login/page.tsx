@@ -32,11 +32,10 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string }>();
+            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string; refreshToken: string }>();
             localStorage.setItem('accessToken', res.accessToken);
-            // 로그인 성공 후 루트로 이동 (루트가 로그인 페이지이므로 새로고침)
-            router.push('/');
-            window.location.reload();
+            localStorage.setItem('refreshToken', res.refreshToken);
+            router.push('/dashboard');
         } catch (err: any) {
             if (err.name === 'HTTPError') {
                 try {

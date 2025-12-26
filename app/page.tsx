@@ -33,7 +33,12 @@ export default function Home() {
         // 로그인 상태 확인
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('accessToken');
-            setIsLoggedIn(!!token);
+            if (token) {
+                // 이미 로그인되어 있으면 대시보드로 이동
+                router.push('/dashboard');
+            } else {
+                setIsLoggedIn(false);
+            }
         }
         setIsChecking(false);
     }, [router]);
@@ -43,10 +48,10 @@ export default function Home() {
         setError(null);
 
         try {
-            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string }>();
+            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string; refreshToken: string }>();
             localStorage.setItem('accessToken', res.accessToken);
-            setIsLoggedIn(true);
-            // 로그인 성공 후 환영 메시지 표시
+            localStorage.setItem('refreshToken', res.refreshToken);
+            router.push('/dashboard');
         } catch (err: any) {
             if (err.name === 'HTTPError') {
                 try {
@@ -63,11 +68,6 @@ export default function Home() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('accessToken');
-        setIsLoggedIn(false);
-    };
-
     if (isChecking) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -75,32 +75,6 @@ export default function Home() {
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">로딩 중...</p>
                 </div>
-            </div>
-        );
-    }
-
-    // 로그인된 상태면 환영 메시지 표시
-    if (isLoggedIn) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-                <Card className="w-full max-w-md">
-                    <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl font-bold text-center">환영합니다!</CardTitle>
-                        <CardDescription className="text-center">
-                            로그인에 성공했습니다.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                            대시보드 기능은 추후 구현 예정입니다.
-                        </p>
-                    </CardContent>
-                    <CardFooter className="justify-center">
-                        <Button onClick={handleLogout} variant="outline" className="w-full">
-                            로그아웃
-                        </Button>
-                    </CardFooter>
-                </Card>
             </div>
         );
     }
