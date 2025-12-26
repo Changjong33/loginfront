@@ -218,12 +218,16 @@ export default function DashboardPage() {
               title="프로필 사진 변경"
             >
               {user?.userProfileImage ? (
-                <Image
+                <img
                   src={user.userProfileImage.imageUrl}
                   alt="Profile"
                   width={40}
                   height={40}
-                  className="rounded-full"
+                  className="rounded-full w-10 h-10 object-cover"
+                  onError={(e) => {
+                    console.error('Profile image load error:', user.userProfileImage?.imageUrl);
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
@@ -274,12 +278,16 @@ export default function DashboardPage() {
                   {/* 게시물 헤더 */}
                   <div className="p-4 flex items-center gap-3">
                     {post.user.userProfileImage ? (
-                      <Image
+                      <img
                         src={post.user.userProfileImage.imageUrl}
                         alt={post.user.nickname || post.user.id}
                         width={32}
                         height={32}
-                        className="rounded-full"
+                        className="rounded-full w-8 h-8 object-cover"
+                        onError={(e) => {
+                          console.error('User profile image load error:', post.user.userProfileImage?.imageUrl);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
@@ -295,12 +303,15 @@ export default function DashboardPage() {
 
                   {/* 게시물 이미지 */}
                   {post.postImages.length > 0 && (
-                    <div className="relative w-full aspect-square bg-gray-100 dark:bg-gray-700">
-                      <Image
+                    <div className="relative w-full aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                      <img
                         src={post.postImages[0].imageUrl}
                         alt={post.caption || '게시물 이미지'}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Image load error:', post.postImages[0].imageUrl);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     </div>
                   )}
