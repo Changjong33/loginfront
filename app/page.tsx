@@ -48,10 +48,13 @@ export default function Home() {
         setError(null);
 
         try {
-            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string; refreshToken: string }>();
+            const response = await api.post('auth/login', { json: data }).json<any>();
             
-            // 토큰 저장 확인
+            // TransformInterceptor로 인해 응답이 { success, data, timestamp } 형식으로 래핑됨
+            const res = response.data || response;
+            
             console.log('Login response:', { 
+                fullResponse: response,
                 hasAccessToken: !!res.accessToken, 
                 hasRefreshToken: !!res.refreshToken,
                 accessTokenLength: res.accessToken?.length 

@@ -56,7 +56,8 @@ export default function PostDetailPage() {
 
   const fetchPost = async () => {
     try {
-      const data = await api.get(`posts/${postId}`).json<Post>();
+      const response = await api.get(`posts/${postId}`).json<any>();
+      const data = response.data || response;
       setPost(data);
     } catch (err: any) {
       if (err.name === 'HTTPError' && err.response.status === 404) {
@@ -77,12 +78,13 @@ export default function PostDetailPage() {
     setError(null);
 
     try {
-      await api.post(`posts/${postId}/comments`, {
+      const response = await api.post(`posts/${postId}/comments`, {
         json: {
           content: comment,
           parentId: parentCommentId || undefined,
         },
-      });
+      }).json<any>();
+      // TransformInterceptor 응답 처리 (필요시)
 
       setComment('');
       setParentCommentId(null);

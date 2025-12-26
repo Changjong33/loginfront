@@ -32,7 +32,21 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const res = await api.post('auth/login', { json: data }).json<{ accessToken: string; refreshToken: string }>();
+            const response = await api.post('auth/login', { json: data }).json<any>();
+            
+            // TransformInterceptor로 인해 응답이 { success, data, timestamp } 형식으로 래핑됨
+            const res = response.data || response;
+            
+            console.log('Login response:', { 
+                fullResponse: response,
+                hasAccessToken: !!res.accessToken, 
+                hasRefreshToken: !!res.refreshToken,
+            });
+            
+            if (!res.accessToken) {
+                throw new Error('토큰을 받지 못했습니다.');
+            }
+            
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
             router.push('/dashboard');

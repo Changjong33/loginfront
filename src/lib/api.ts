@@ -39,11 +39,11 @@ export const api = ky.create({
         
         // SSR 환경에서는 localStorage 접근 불가
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('accessToken');
           console.log('Token in request:', !!token, token ? token.substring(0, 20) + '...' : 'NO TOKEN');
           
-          if (token) {
-            request.headers.set('Authorization', `Bearer ${token}`);
+        if (token) {
+          request.headers.set('Authorization', `Bearer ${token}`);
             console.log('Authorization header set');
           } else {
             console.warn('No token found for request:', request.url);
