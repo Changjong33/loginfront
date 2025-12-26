@@ -51,10 +51,10 @@ export default function CreatePostPage() {
       await api.post('posts', {
         json: {
           caption: caption || undefined,
-          images: imageUrls.map((url, index) => ({
+          images: imageUrls.length > 0 ? imageUrls.map((url, index) => ({
             imageUrl: url,
             sortOrder: index,
-          })),
+          })) : undefined,
         },
       });
 
@@ -149,7 +149,6 @@ export default function CreatePostPage() {
                 <Button
                   type="submit"
                   isLoading={isLoading}
-                  disabled={images.length === 0}
                   className="flex-1"
                 >
                   게시하기

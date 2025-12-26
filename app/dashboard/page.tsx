@@ -106,6 +106,20 @@ export default function DashboardPage() {
     fetchData();
   }, [router]);
 
+  useEffect(() => {
+    // 페이지를 떠날 때 자동 로그아웃
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const handleLogout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
