@@ -4,11 +4,23 @@ import { Ok, Err, Result } from 'oxide';
 // API URL 설정 (환경 변수 또는 기본값)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-// URL 끝의 슬래시 제거 (ky가 자동으로 추가함)
-const cleanApiUrl = API_URL.replace(/\/$/, '');
+// URL 정리: 끝의 슬래시 제거, 도메인만 추출 (프로토콜 + 도메인 + 포트)
+let cleanApiUrl = API_URL.replace(/\/$/, '');
+try {
+  const url = new URL(cleanApiUrl);
+  cleanApiUrl = `${url.protocol}//${url.host}`;
+} catch {
+  // URL 파싱 실패 시 원본 사용
+  cleanApiUrl = cleanApiUrl.split('/').slice(0, 3).join('/');
+}
 
 if (!process.env.NEXT_PUBLIC_API_URL) {
   console.warn('NEXT_PUBLIC_API_URL is not defined in environment variables. Using default:', cleanApiUrl);
+}
+
+// 디버깅용
+if (typeof window !== 'undefined') {
+  console.log('API Base URL:', cleanApiUrl);
 }
 
 export const api = ky.create({
