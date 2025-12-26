@@ -313,6 +313,7 @@ export default function PostDetailPage() {
                   <button
                     onClick={() => handleReply(comment.id)}
                     className="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    type="button"
                   >
                     답글
                   </button>
@@ -321,12 +322,14 @@ export default function PostDetailPage() {
                       <button
                         onClick={() => handleStartEditComment(comment)}
                         className="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+                        type="button"
                       >
                         수정
                       </button>
                       <button
                         onClick={() => handleDeleteComment(comment.id)}
                         className="text-sm text-red-500 hover:text-red-600"
+                        type="button"
                       >
                         삭제
                       </button>
