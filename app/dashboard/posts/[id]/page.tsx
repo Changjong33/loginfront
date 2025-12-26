@@ -468,9 +468,22 @@ export default function PostDetailPage() {
                 src={post.postImages[0].imageUrl}
                 alt={post.caption || '게시물 이미지'}
                 className="w-full h-full object-cover"
+                crossOrigin="anonymous"
+                loading="lazy"
                 onError={(e) => {
-                  console.error('Image load error:', post.postImages[0].imageUrl);
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  const img = e.target as HTMLImageElement;
+                  console.error('Image load error:', {
+                    url: post.postImages[0].imageUrl,
+                    error: img.error,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                  });
+                  // 이미지 로드 실패 시 대체 이미지 표시
+                  img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23ddd" width="400" height="400"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3E이미지를 불러올 수 없습니다%3C/text%3E%3C/svg%3E';
+                  img.onerror = null; // 무한 루프 방지
+                }}
+                onLoad={() => {
+                  console.log('Image loaded successfully:', post.postImages[0].imageUrl);
                 }}
               />
             </div>
