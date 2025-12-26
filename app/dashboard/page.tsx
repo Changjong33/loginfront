@@ -73,13 +73,27 @@ export default function DashboardPage() {
           name: err.name,
           status: err.response?.status,
           message: err.message,
+          url: err.response?.url,
         });
         
-        if (err.name === 'HTTPError' && err.response.status === 401) {
-          console.log('401 error - clearing tokens');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          router.push('/');
+        if (err.name === 'HTTPError') {
+          if (err.response.status === 401) {
+            console.log('401 error - clearing tokens');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            router.push('/');
+            return;
+          } else if (err.response.status === 500) {
+            // 500 에러 시 에러 메시지 표시
+            try {
+              const errorData = await err.response.json();
+              setError(errorData.message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            } catch {
+              setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            }
+          } else {
+            setError('데이터를 불러오는데 실패했습니다.');
+          }
         } else {
           setError('데이터를 불러오는데 실패했습니다.');
         }
