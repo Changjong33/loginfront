@@ -40,17 +40,28 @@ export const api = ky.create({
         // SSR 환경에서는 localStorage 접근 불가
         if (typeof window !== 'undefined') {
           const token = localStorage.getItem('accessToken');
+          console.log('Token in request:', !!token, token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+          
           if (token) {
             request.headers.set('Authorization', `Bearer ${token}`);
+            console.log('Authorization header set');
+          } else {
+            console.warn('No token found for request:', request.url);
           }
         }
       },
     ],
     afterResponse: [
       async (request, options, response) => {
-        // 401 에러 시 토큰 제거
+        // 401 에러 시 토큰 제거 및 상세 로깅
         if (response.status === 401 && typeof window !== 'undefined') {
+          console.error('401 Unauthorized:', {
+            url: request.url,
+            status: response.status,
+            hasToken: !!localStorage.getItem('accessToken'),
+          });
           localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
         }
         return response;
       },

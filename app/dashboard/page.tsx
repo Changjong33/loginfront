@@ -46,22 +46,37 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          router.push('/');
-          return;
-        }
+      // 토큰 확인
+      const token = localStorage.getItem('accessToken');
+      console.log('Dashboard load - Token exists:', !!token);
+      
+      if (!token) {
+        console.log('No token, redirecting to login');
+        router.push('/');
+        return;
+      }
 
+      try {
+        console.log('Fetching user data...');
         // 사용자 프로필 조회
         const userData = await api.get('users/me').json<User>();
+        console.log('User data received:', !!userData);
         setUser(userData);
 
         // 게시물 목록 조회
         const postsData = await api.get('posts').json<Post[]>();
         setPosts(postsData);
       } catch (err: any) {
+        console.error('Dashboard fetch error:', {
+          name: err.name,
+          status: err.response?.status,
+          message: err.message,
+        });
+        
         if (err.name === 'HTTPError' && err.response.status === 401) {
+          console.log('401 error - clearing tokens');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
           router.push('/');
         } else {
           setError('데이터를 불러오는데 실패했습니다.');

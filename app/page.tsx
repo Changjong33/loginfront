@@ -49,10 +49,30 @@ export default function Home() {
 
         try {
             const res = await api.post('auth/login', { json: data }).json<{ accessToken: string; refreshToken: string }>();
+            
+            // 토큰 저장 확인
+            console.log('Login response:', { 
+                hasAccessToken: !!res.accessToken, 
+                hasRefreshToken: !!res.refreshToken,
+                accessTokenLength: res.accessToken?.length 
+            });
+            
+            if (!res.accessToken) {
+                throw new Error('토큰을 받지 못했습니다.');
+            }
+            
             localStorage.setItem('accessToken', res.accessToken);
             localStorage.setItem('refreshToken', res.refreshToken);
+            
+            // 토큰 저장 확인
+            const savedToken = localStorage.getItem('accessToken');
+            console.log('Token saved:', !!savedToken, savedToken ? savedToken.substring(0, 20) + '...' : 'NO TOKEN');
+            
+            // 약간의 지연 후 리다이렉트 (토큰 저장 보장)
+            await new Promise(resolve => setTimeout(resolve, 100));
             router.push('/dashboard');
         } catch (err: any) {
+            console.error('Login error:', err);
             if (err.name === 'HTTPError') {
                 try {
                     const errorData = await err.response.json();
@@ -61,7 +81,7 @@ export default function Home() {
                     setError('로그인에 실패했습니다.');
                 }
             } else {
-                setError('알 수 없는 오류가 발생했습니다.');
+                setError(err.message || '알 수 없는 오류가 발생했습니다.');
             }
         } finally {
             setIsLoading(false);
