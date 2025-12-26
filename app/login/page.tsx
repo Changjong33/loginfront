@@ -34,11 +34,17 @@ export default function LoginPage() {
         try {
             const res = await api.post('auth/login', { json: data }).json<{ accessToken: string }>();
             localStorage.setItem('accessToken', res.accessToken);
-            router.push('/'); // Redirect to home/dashboard
+            // 로그인 성공 후 루트로 이동 (루트가 로그인 페이지이므로 새로고침)
+            router.push('/');
+            window.location.reload();
         } catch (err: any) {
             if (err.name === 'HTTPError') {
-                const errorData = await err.response.json();
-                setError(errorData.message || '로그인에 실패했습니다.');
+                try {
+                    const errorData = await err.response.json();
+                    setError(errorData.message || '로그인에 실패했습니다.');
+                } catch {
+                    setError('로그인에 실패했습니다.');
+                }
             } else {
                 setError('알 수 없는 오류가 발생했습니다.');
             }
