@@ -44,21 +44,33 @@ export default function PostDetailPage() {
   const postId = params.id as string;
 
   const [post, setPost] = useState<Post | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [comment, setComment] = useState('');
   const [parentCommentId, setParentCommentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
+  const [editingPost, setEditingPost] = useState(false);
+  const [editCaption, setEditCaption] = useState('');
 
   useEffect(() => {
-    fetchPost();
+    fetchData();
   }, [postId]);
 
-  const fetchPost = async () => {
+  const fetchData = async () => {
     try {
-      const response = await api.get(`posts/${postId}`).json<any>();
-      const data = response.data || response;
-      setPost(data);
+      // 현재 사용자 정보 가져오기
+      const userResponse = await api.get('users/me').json<any>();
+      const userData = userResponse.data || userResponse;
+      setCurrentUser(userData);
+
+      // 게시물 정보 가져오기
+      const postResponse = await api.get(`posts/${postId}`).json<any>();
+      const postData = postResponse.data || postResponse;
+      setPost(postData);
+      setEditCaption(postData.caption || '');
     } catch (err: any) {
       if (err.name === 'HTTPError' && err.response.status === 404) {
         setError('게시물을 찾을 수 없습니다.');
@@ -67,6 +79,21 @@ export default function PostDetailPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPost = async () => {
+    try {
+      const response = await api.get(`posts/${postId}`).json<any>();
+      const data = response.data || response;
+      setPost(data);
+      setEditCaption(data.caption || '');
+    } catch (err: any) {
+      if (err.name === 'HTTPError' && err.response.status === 404) {
+        setError('게시물을 찾을 수 없습니다.');
+      } else {
+        setError('게시물을 불러오는데 실패했습니다.');
+      }
     }
   };
 
@@ -111,51 +138,216 @@ export default function PostDetailPage() {
     document.getElementById('comment-input')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const renderComment = (comment: Comment, depth: number = 0) => (
-    <div key={comment.id} className={depth > 0 ? 'ml-8 mt-2' : 'mt-4'}>
-      <div className="flex gap-3">
-        {comment.user.userProfileImage ? (
-          <Image
-            src={comment.user.userProfileImage.imageUrl}
-            alt={comment.user.nickname || 'User'}
-            width={32}
-            height={32}
-            className="rounded-full"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-gray-600 dark:text-gray-300 text-xs">
-              {comment.user.nickname?.[0]?.toUpperCase() || 'U'}
-            </span>
-          </div>
-        )}
-        <div className="flex-1">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-            <p className="font-semibold text-sm text-gray-900 dark:text-white">
-              {comment.user.nickname || '익명'}
-            </p>
-            <p className="text-gray-900 dark:text-white mt-1">{comment.content}</p>
-          </div>
-          <div className="flex items-center gap-4 mt-1 ml-2">
-            <button
-              onClick={() => handleReply(comment.id)}
-              className="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
-            >
-              답글
-            </button>
-            <span className="text-xs text-gray-400">
-              {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
-            </span>
-          </div>
-          {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-2">
-              {comment.replies.map((reply) => renderComment(reply, depth + 1))}
+  const handleDeletePost = async () => {
+    if (!confirm('정말 이 게시물을 삭제하시겠습니까?')) return;
+
+    try {
+      await api.delete(`posts/${postId}`);
+      router.push('/dashboard');
+    } catch (err: any) {
+      if (err.name === 'HTTPError') {
+        try {
+          const errorData = await err.response.json();
+          alert(errorData.message || '게시물 삭제에 실패했습니다.');
+        } catch {
+          alert('게시물 삭제에 실패했습니다.');
+        }
+      } else {
+        alert('게시물 삭제에 실패했습니다.');
+      }
+    }
+  };
+
+  const handleUpdatePost = async () => {
+    if (!post) return;
+
+    setIsSubmitting(true);
+    try {
+      // 이미지를 base64로 변환 (기존 이미지 유지)
+      const images = post.postImages.map((img, index) => ({
+        imageUrl: img.imageUrl,
+        sortOrder: index,
+      }));
+
+      await api.patch(`posts/${postId}`, {
+        json: {
+          caption: editCaption || undefined,
+          images,
+        },
+      });
+
+      setEditingPost(false);
+      await fetchPost();
+    } catch (err: any) {
+      if (err.name === 'HTTPError') {
+        try {
+          const errorData = await err.response.json();
+          setError(errorData.message || '게시물 수정에 실패했습니다.');
+        } catch {
+          setError('게시물 수정에 실패했습니다.');
+        }
+      } else {
+        setError('게시물 수정에 실패했습니다.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('정말 이 댓글을 삭제하시겠습니까?')) return;
+
+    try {
+      await api.delete(`posts/${postId}/comments/${commentId}`);
+      await fetchPost();
+    } catch (err: any) {
+      if (err.name === 'HTTPError') {
+        try {
+          const errorData = await err.response.json();
+          alert(errorData.message || '댓글 삭제에 실패했습니다.');
+        } catch {
+          alert('댓글 삭제에 실패했습니다.');
+        }
+      } else {
+        alert('댓글 삭제에 실패했습니다.');
+      }
+    }
+  };
+
+  const handleStartEditComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent('');
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!editingCommentContent.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await api.patch(`posts/${postId}/comments/${commentId}`, {
+        json: {
+          content: editingCommentContent,
+        },
+      });
+
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      await fetchPost();
+    } catch (err: any) {
+      if (err.name === 'HTTPError') {
+        try {
+          const errorData = await err.response.json();
+          setError(errorData.message || '댓글 수정에 실패했습니다.');
+        } catch {
+          setError('댓글 수정에 실패했습니다.');
+        }
+      } else {
+        setError('댓글 수정에 실패했습니다.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderComment = (comment: Comment, depth: number = 0) => {
+    const isOwner = currentUser && comment.user.id === currentUser.id;
+    const isEditing = editingCommentId === comment.id;
+
+    return (
+      <div key={comment.id} className={depth > 0 ? 'ml-8 mt-2' : 'mt-4'}>
+        <div className="flex gap-3">
+          {comment.user.userProfileImage ? (
+            <Image
+              src={comment.user.userProfileImage.imageUrl}
+              alt={comment.user.nickname || 'User'}
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-gray-600 dark:text-gray-300 text-xs">
+                {comment.user.nickname?.[0]?.toUpperCase() || 'U'}
+              </span>
             </div>
           )}
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                <Input
+                  value={editingCommentContent}
+                  onChange={(e) => setEditingCommentContent(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleUpdateComment(comment.id)}
+                    isLoading={isSubmitting}
+                  >
+                    저장
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEditComment}
+                  >
+                    취소
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                    {comment.user.nickname || '익명'}
+                  </p>
+                  <p className="text-gray-900 dark:text-white mt-1">{comment.content}</p>
+                </div>
+                <div className="flex items-center gap-4 mt-1 ml-2">
+                  <button
+                    onClick={() => handleReply(comment.id)}
+                    className="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+                  >
+                    답글
+                  </button>
+                  {isOwner && (
+                    <>
+                      <button
+                        onClick={() => handleStartEditComment(comment)}
+                        className="text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="text-sm text-red-500 hover:text-red-600"
+                      >
+                        삭제
+                      </button>
+                    </>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
+                  </span>
+                </div>
+              </>
+            )}
+            {comment.replies && comment.replies.length > 0 && (
+              <div className="mt-2">
+                {comment.replies.map((reply) => renderComment(reply, depth + 1))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -192,25 +384,70 @@ export default function PostDetailPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* 게시물 헤더 */}
-          <div className="p-4 flex items-center gap-3 border-b border-gray-200 dark:border-gray-700">
-            {post.user.userProfileImage ? (
-              <Image
-                src={post.user.userProfileImage.imageUrl}
-                alt={post.user.nickname || post.user.id}
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                <span className="text-gray-600 dark:text-gray-300 text-sm">
-                  {post.user.nickname?.[0]?.toUpperCase() || 'U'}
-                </span>
+          <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              {post.user.userProfileImage ? (
+                <Image
+                  src={post.user.userProfileImage.imageUrl}
+                  alt={post.user.nickname || post.user.id}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">
+                    {post.user.nickname?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {post.user.nickname || '익명'}
+              </span>
+            </div>
+            {currentUser && post.user.id === currentUser.id && (
+              <div className="flex gap-2">
+                {editingPost ? (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={handleUpdatePost}
+                      isLoading={isSubmitting}
+                    >
+                      저장
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingPost(false);
+                        setEditCaption(post.caption || '');
+                      }}
+                    >
+                      취소
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingPost(true)}
+                    >
+                      수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDeletePost}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      삭제
+                    </Button>
+                  </>
+                )}
               </div>
             )}
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {post.user.nickname || '익명'}
-            </span>
           </div>
 
           {/* 게시물 이미지 */}
@@ -227,13 +464,25 @@ export default function PostDetailPage() {
 
           {/* 게시물 내용 */}
           <div className="p-4">
-            {post.caption && (
-              <p className="text-gray-900 dark:text-white mb-4">
-                <span className="font-semibold mr-2">
-                  {post.user.nickname || '익명'}
-                </span>
-                {post.caption}
-              </p>
+            {editingPost ? (
+              <div className="mb-4">
+                <textarea
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="캡션을 입력하세요..."
+                />
+              </div>
+            ) : (
+              post.caption && (
+                <p className="text-gray-900 dark:text-white mb-4">
+                  <span className="font-semibold mr-2">
+                    {post.user.nickname || '익명'}
+                  </span>
+                  {post.caption}
+                </p>
+              )
             )}
             <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">
               {new Date(post.createdAt).toLocaleDateString('ko-KR', {

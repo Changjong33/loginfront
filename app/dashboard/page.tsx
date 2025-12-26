@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,6 +121,52 @@ export default function DashboardPage() {
     }
   };
 
+  const handleProfileImageClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setIsUploadingProfile(true);
+      try {
+        // 이미지를 base64로 변환
+        const imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // 프로필 사진 업로드
+        await api.post('users/me/profile-image', {
+          json: { imageUrl },
+        });
+        
+        // 사용자 정보 다시 불러오기
+        const userResponse = await api.get('users/me').json<any>();
+        const userData = userResponse.data || userResponse;
+        setUser(userData);
+      } catch (err: any) {
+        console.error('Profile image upload error:', err);
+        if (err.name === 'HTTPError') {
+          try {
+            const errorData = await err.response.json();
+            alert(errorData.message || '프로필 사진 업로드에 실패했습니다.');
+          } catch {
+            alert('프로필 사진 업로드에 실패했습니다.');
+          }
+        } else {
+          alert('프로필 사진 업로드에 실패했습니다.');
+        }
+      } finally {
+        setIsUploadingProfile(false);
+      }
+    };
+    input.click();
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -150,21 +197,33 @@ export default function DashboardPage() {
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {user?.userProfileImage ? (
-              <Image
-                src={user.userProfileImage.imageUrl}
-                alt="Profile"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                <span className="text-gray-600 dark:text-gray-300 text-sm">
-                  {user?.nickname?.[0]?.toUpperCase() || user?.email[0]?.toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
+            <button
+              onClick={handleProfileImageClick}
+              disabled={isUploadingProfile}
+              className="relative cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50"
+              title="프로필 사진 변경"
+            >
+              {user?.userProfileImage ? (
+                <Image
+                  src={user.userProfileImage.imageUrl}
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                  <span className="text-gray-600 dark:text-gray-300 text-sm">
+                    {user?.nickname?.[0]?.toUpperCase() || user?.email[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+              {isUploadingProfile && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </button>
             <div>
               <h1 className="font-semibold text-gray-900 dark:text-white">
                 {user?.nickname || user?.email || '사용자'}
